@@ -1,0 +1,441 @@
+<script>
+    (function() {
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        
+        const isAdmin = user && (user.role === 'admin' || user.email === 'sergejnikitin8112@gmail.com');
+
+        if (!isAdmin) {
+            alert("Доступ запрещен! Требуются права администратора.");
+            window.location.href = 'profile.html';
+        }
+    })();
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+    }
+</script>
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель администратора — Candy Cloud</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .admin-container { padding: 40px 20px; }
+        
+        .stats-panel { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-card { 
+            background: white; padding: 20px; border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); flex: 1; border-left: 5px solid #e67e22;
+        }
+        .stat-card h3 { font-size: 0.9rem; color: #7f8c8d; text-transform: uppercase; margin-bottom: 10px; }
+        .stat-card p { font-size: 1.8rem; font-weight: bold; margin: 0; color: #2c3e50; }
+        .stat-revenue { border-left-color: #27ae60; }
+
+        .table-wrapper { 
+            background: white; border-radius: 12px; overflow: hidden; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 15px; text-align: left; color: #7f8c8d; font-weight: 600; border-bottom: 2px solid #eee; }
+        td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        
+        .order-id { color: #95a5a6; font-weight: bold; }
+        .client-info strong { display: block; color: #2c3e50; }
+        .client-info small { color: #7f8c8d; }
+        .items-list { font-size: 0.85rem; color: #34495e; max-width: 300px; }
+        
+        select.status-select { 
+            padding: 6px 10px; border-radius: 6px; border: 1px solid #dcdde1; 
+            background: #f8f9fa; cursor: pointer; outline: none;
+        }
+        .delete-btn { 
+            background: #ff7675; color: white; border: none; padding: 8px 12px; 
+            border-radius: 6px; cursor: pointer; transition: 0.2s;
+        }
+        .delete-btn:hover { background: #d63031; }
+    </style>
+</head>
+<body>
+
+<header class="navbar">
+    <div class="container">
+        <div class="logo">Candy Cloud <span style="font-weight: 300; opacity: 0.7;">| Admin</span></div>
+        <nav>
+            <ul class="nav-links">
+                <li><a href="index.html">На сайт</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main class="container admin-container">
+    <h1 style="margin-bottom: 25px;">Управление заказами</h1>
+
+    <!-- Панель статистики -->
+    <div class="stats-panel">
+        <div class="stat-card">
+            <h3>Всего заказов</h3>
+            <p id="total-orders-count">0</p>
+        </div>
+        <div class="stat-card stat-revenue">
+            <h3>Общая выручка</h3>
+            <p id="total-revenue">0 ₽</p>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+    <button onclick="openProductModal()" class="order-btn" style="background: #27ae60;">
+        <i class="fas fa-plus"></i> Добавить новый товар
+    </a>
+</div>
+
+<div id="product-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close-modal" onclick="closeProductModal()">&times;</span>
+        <h2>Новый товар</h2>
+        <form id="add-product-form">
+            <div style="margin-bottom: 15px;">
+                <label>Название товара:</label>
+                <input type="text" id="p-name" required style="width:100%; padding:8px; margin-top:5px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Цена (₽):</label>
+                <input type="number" id="p-price" required style="width:100%; padding:8px; margin-top:5px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Описание (необязательно):</label>
+                <textarea id="p-desc" style="width:100%; padding:8px; margin-top:5px; height: 60px;"></textarea>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Ссылка на картинку (URL):</label>
+                <input type="text" id="p-image" placeholder="https://example.com/image.jpg" style="width:100%; padding:8px; margin-top:5px;">
+            </div>
+            <button type="submit" class="order-btn" style="width: 100%;">Сохранить в каталог</button>
+        </form>
+    </div>
+</div>
+<div class="stat-card" style="margin-top: 20px;">
+    <h3>Управление каталогом</h3>
+    <div id="admin-product-list" style="display: grid; gap: 10px; margin-top: 15px;">
+        </div>
+</div>
+    <!-- Таблица заказов -->
+    <div class="table-wrapper">
+        <div id="orders-table-container">
+            <p style="padding: 20px;">Загрузка данных...</p>
+        </div>
+    </div>
+</main>
+
+<script>
+
+// Функция выхода
+function logout() {
+    localStorage.removeItem('isAdmin');
+    window.location.href = 'login.html';
+}
+    // Загрузка данных с сервера
+    async function fetchOrders() {
+        try {
+            const response = await fetch('http://localhost:5000/api/orders?t=' + Date.now());
+            if (!response.ok) throw new Error('Ошибка сервера: ' + response.status);
+            
+            const orders = await response.json();
+            renderOrders(orders);
+        } catch (error) {
+            console.error('Ошибка:', error);
+            document.getElementById('orders-table-container').innerHTML = 
+                `<p style="padding: 20px; color:red;">Не удалось загрузить заказы. Проверьте работу бэкенда.</p>`;
+        }
+    }
+
+    // Отрисовка таблицы и статистики
+    function renderOrders(orders) {
+        const container = document.getElementById('orders-table-container');
+        
+        document.getElementById('total-orders-count').innerText = orders.length;
+        const revenue = orders.reduce((sum, o) => sum + Number(o.total_price), 0);
+        document.getElementById('total-revenue').innerText = `${revenue.toLocaleString()} ₽`;
+
+        if (!orders || orders.length === 0) {
+            container.innerHTML = '<p style="padding: 20px;">Заказов пока нет.</p>';
+            return;
+        }
+
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Клиент</th>
+                        <th>Состав заказа</th>
+                        <th>Сумма</th>
+                        <th>Статус</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        html += orders.map(order => {
+            let itemsList = "Ошибка данных";
+            try {
+                const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+                itemsList = items.map(i => `${i.name} (x${i.quantity})`).join(', ');
+            } catch (e) { console.error(e); }
+
+            return `
+                <tr id="order-row-${order.id}">
+                    <td class="order-id">#${order.id}</td>
+                    <td class="client-info">
+                        <strong onclick="showCustomerInfo('${order.user_phone}', '${order.user_name}')" style="color: #e67e22; cursor: pointer; text-decoration: underline;">
+                            ${order.user_name}
+                        </strong>
+                        <small>${order.user_phone}</small>
+                    </td>
+                    <td class="items-list">${itemsList}</td>
+                    <td style="font-weight: 600;">${order.total_price} ₽</td>
+                    <td>
+                        <select class="status-select" onchange="updateStatus(${order.id}, this.value)">
+                            <option value="Новый" ${order.status === 'Новый' ? 'selected' : ''}>Новый</option>
+                            <option value="Готовится" ${order.status === 'Готовится' ? 'selected' : ''}>Готовится</option>
+                            <option value="Выполнен" ${order.status === 'Выполнен' ? 'selected' : ''}>Выполнен</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteOrder(${order.id})" title="Удалить">
+                            <i class="fas fa-trash">Удалить</i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    // Удаление заказа
+    async function deleteOrder(id) {
+        if (!confirm(`Вы уверены, что хотите удалить заказ #${id}?`)) return;
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/orders/${id}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                fetchOrders();
+            }
+        } catch (error) {
+            alert('Не удалось удалить заказ');
+        }
+    }
+
+    // Обновление статуса
+    async function updateStatus(id, newStatus) {
+        try {
+            const response = await fetch(`http://localhost:5000/api/orders/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (!response.ok) throw new Error();
+            console.log(`Статус заказа #${id} изменен на ${newStatus}`);
+        } catch (error) {
+            alert('Не удалось обновить статус');
+        }
+    }
+
+    // Запуск при загрузке
+    fetchOrders();
+
+async function showCustomerInfo(phone, name) {
+    const modal = document.getElementById('customer-modal');
+    const detailsDiv = document.getElementById('customer-details');
+    const historyDiv = document.getElementById('customer-orders-history');
+    
+    document.getElementById('modal-customer-name').innerText = `Клиент: ${name}`;
+    modal.style.display = 'block';
+    historyDiv.innerHTML = 'Загрузка истории...';
+
+    try {
+        const response = await fetch(`http://localhost:5000/api/customers/${phone}?t=` + Date.now());
+        const orders = await response.json();
+
+        if (!orders || orders.length === 0) {
+            detailsDiv.innerHTML = `<p>У этого клиента еще нет заказов.</p>`;
+            historyDiv.innerHTML = '';
+            return;
+        }
+
+        const lastOrder = orders[0];
+        detailsDiv.innerHTML = `
+            <p><strong>Телефон:</strong> ${phone}</p>
+            <p><strong>Последний адрес:</strong> ${lastOrder.user_address || 'Не указан'}</p>
+            <p><strong>Всего заказов:</strong> ${orders.length}</p>
+        `;
+
+        // Рисуем мини-таблицу истории с безопасным парсингом items
+        historyDiv.innerHTML = `
+            <table style="font-size: 0.9rem;">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Товары</th>
+                        <th>Сумма</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orders.map(o => {
+                        // БЕЗОПАСНЫЙ ПАРСИНГ:
+                        let parsedItems = [];
+                        try {
+                            parsedItems = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+                        } catch (e) {
+                            console.error("Ошибка парсинга товаров для заказа #" + o.id, e);
+                        }
+
+                        const itemsNames = Array.isArray(parsedItems) 
+                            ? parsedItems.map(i => i.name).join(', ') 
+                            : 'Ошибка состава';
+
+                        return `
+                            <tr>
+                                <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                                <td>${itemsNames}</td>
+                                <td>${o.total_price} ₽</td>
+                                <td>${o.status || 'Новый'}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (e) {
+        console.error("Глобальная ошибка в showCustomerInfo:", e);
+        historyDiv.innerHTML = '<p style="color:red">Ошибка при обработке данных истории.</p>';
+    }
+}
+
+function closeCustomerModal() {
+    document.getElementById('customer-modal').style.display = 'none';
+}
+
+// Закрытие при клике вне окна
+window.onclick = function(event) {
+    const modal = document.getElementById('customer-modal');
+    if (event.target == modal) {
+        closeCustomerModal();
+    }
+}
+
+function openProductModal() {
+    document.getElementById('product-modal').style.display = 'block';
+}
+
+function closeProductModal() {
+    document.getElementById('product-modal').style.display = 'none';
+}
+
+// Обработка формы
+document.getElementById('add-product-form').onsubmit = async (e) => {
+    e.preventDefault();
+
+    const productData = {
+        name: document.getElementById('p-name').value,
+        price: document.getElementById('p-price').value,
+        description: document.getElementById('p-desc').value,
+        image_url: document.getElementById('p-image').value // Проверьте, что ID совпадает с инпутом
+    };
+
+    console.log("Отправляем данные:", productData); // Посмотрите в консоль браузера (F12)
+
+    try {
+        const response = await fetch('http://localhost:5000/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert("Товар добавлен!");
+            location.reload(); 
+        } else {
+            alert("Ошибка сервера: " + data.error);
+        }
+    } catch (error) {
+        alert("Не удалось связаться с сервером");
+    }
+};
+
+// Загрузка товаров в админку для удаления
+async function loadAdminProducts() {
+    const container = document.getElementById('admin-product-list');
+    try {
+        const res = await fetch('http://localhost:5000/api/products');
+        const products = await res.json();
+
+        container.innerHTML = products.map(p => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+                <span><strong>${p.name}</strong> — ${p.price} ₽</span>
+                <button onclick="deleteProduct(${p.id})" style="background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+            </div>
+        `).join('');
+    } catch (e) {
+        container.innerHTML = 'Ошибка загрузки товаров';
+    }
+}
+
+// Функция удаления
+async function deleteProduct(id) {
+    if (!confirm("Вы уверены, что хотите удалить этот товар?")) return;
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/products/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            loadAdminProducts(); // Обновляем список
+            alert("Товар удален");
+        }
+    } catch (e) {
+        alert("Ошибка при удалении");
+    }
+}
+
+// Не забудь вызвать loadAdminProducts() при загрузке страницы
+document.addEventListener('DOMContentLoaded', loadAdminProducts);
+
+// И обнови отправку формы добавления, чтобы включить p-image
+// В объекте productData добавь: image_url: document.getElementById('p-image').value
+
+</script>
+
+<!-- Модальное окно клиента -->
+<div id="customer-modal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <span class="close-modal" onclick="closeCustomerModal()">&times;</span>
+        <h2 id="modal-customer-name">Инфо о клиенте</h2>
+        <hr>
+        <div id="customer-details" style="margin-bottom: 20px;">
+            <!-- Сюда вставим телефон и адрес -->
+        </div>
+        <h3>История заказов</h3>
+        <div id="customer-orders-history">
+            <!-- Сюда вставим таблицу прошлых заказов -->
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

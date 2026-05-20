@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оформление заказа — Сладкая Лавка</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style_checkout.css">
+    <!-- Иконки для красоты -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Вернуться в магазин</a>
+        <h2>Оформление заказа</h2>
+    </div>
+</header>
+
+<main class="container">
+    <div class="checkout-wrapper">
+        <!-- Левая часть: Форма -->
+        <section class="order-form-container">
+            <h3><i class="fas fa-user-edit"></i> Данные получателя</h3>
+            <form id="order-form">
+                <div class="form-group">
+                    <label>Имя</label>
+                    <input type="text" id="user-name" placeholder="Иван Иванов" required>
+                </div>
+                <div class="form-group">
+                    <label>Телефон</label>
+                    <input type="tel" id="user-phone" placeholder="+7 (999) 000-00-00" required>
+                </div>
+                <div class="form-group">
+                    <label>Адрес доставки</label>
+                    <textarea id="user-address" placeholder="Улица, дом, квартира" required></textarea>
+                </div>
+                <button type="submit" class="confirm-btn">Подтвердить заказ</button>
+            </form>
+        </section>
+
+        <!-- Правая часть: Корзина -->
+        <section class="order-summary">
+            <h3><i class="fas fa-shopping-basket"></i> Ваш заказ</h3>
+            <div id="checkout-items-list">
+                <!-- Сюда JS вставит товары -->
+            </div>
+            <div class="summary-footer">
+                <div class="total-line">
+                    <span>Итого к оплате:</span>
+                    <span class="total-amount"><span id="checkout-total">0</span> ₽</span>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<div id="toast" class="toast">Заказ успешно оформлен!</div>
+
+<!-- Сначала подключаем общий скрипт -->
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCheckout();
+
+            // Вешаем событие на форму
+            const orderForm = document.getElementById('order-form');
+            if (orderForm) {
+                orderForm.addEventListener('submit', (e) => {
+                    e.preventDefault(); // Останавливаем перезагрузку страницы
+                    confirmOrder();    // Запускаем очистку и уведомление
+                });
+            }
+        });
+        // Функция для автозаполнения полей профиля
+    function autoFillProfileData() {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+        if (currentUser) {
+            // Находим поля формы
+            const nameInput = document.getElementById('user-name');
+            const phoneInput = document.getElementById('user-phone');
+            const addressInput = document.getElementById('user-address');
+
+            // Подставляем данные, если они есть в объекте пользователя
+            if (nameInput && currentUser.full_name) {
+                nameInput.value = currentUser.full_name;
+            }
+            if (phoneInput && currentUser.phone) {
+                phoneInput.value = currentUser.phone;
+            }
+            if (addressInput && currentUser.address) {
+                addressInput.value = currentUser.address;
+            }
+            
+            console.log("Данные профиля успешно подтянуты");
+        }
+    }
+
+    // Вызываем функцию сразу при загрузке страницы
+    document.addEventListener('DOMContentLoaded', autoFillProfileData);
+</script>
+</body>
+</html>

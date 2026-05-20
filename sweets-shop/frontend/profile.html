@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Аккаунт — Candy Cloud</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-container { max-width: 400px; margin: 50px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .auth-container input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .auth-btn { width: 100%; padding: 12px; background: #e67e22; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .toggle-link { margin-top: 15px; display: block; color: #3498db; cursor: pointer; text-decoration: underline; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<header class="navbar">
+    <div class="container">
+        <a href="index.html" class="logo">Candy Cloud</a>
+        
+    </div>
+</header>
+
+<main class="container">
+    <!-- СЕКЦИЯ АВТОРИЗАЦИИ -->
+    <div id="auth-section" class="auth-container">
+        <!-- Форма Входа -->
+        <div id="login-form-container">
+            <h2>Вход</h2>
+            <form id="login-form">
+                <input type="email" id="l-email" placeholder="Email" required>
+                <input type="password" id="l-pass" placeholder="Пароль" required>
+                <button type="submit" class="auth-btn">Войти</button>
+            </form>
+            <span class="toggle-link" onclick="toggleForms()">Нет аккаунта? Регистрация</span>
+        </div>
+
+        <!-- Форма Регистрации -->
+       <div id="register-form-container" class="hidden">
+    <h2>Регистрация</h2>
+    <form id="register-form">
+        <input type="text" id="r-name" placeholder="ФИО" required>
+        
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="email" id="r-email" placeholder="Email" required style="flex: 1; margin: 0;">
+            <button type="button" onclick="sendVerifyCode()" id="send-code-btn" 
+                    style="width: 140px; padding: 10px; font-size: 0.8rem; background: #34495e;">
+                Получить код
+            </button>
+        </div>
+        
+        <input type="text" id="r-code" placeholder="Введите 6-значный код из письма" required>
+        
+        <input type="tel" id="r-phone" placeholder="Телефон" required>
+        <input type="text" id="r-address" placeholder="Адрес доставки">
+        <input type="password" id="r-pass" placeholder="Придумайте пароль" required>
+        <button type="submit" class="auth-btn">Создать аккаунт</button>
+    </form>
+    <span class="toggle-link" onclick="toggleForms()">Уже есть аккаунт? Войти</span>
+</div>
+    </div>
+
+    <!-- СЕКЦИЯ ЛИЧНОГО КАБИНЕТА -->
+  <div id="profile-section" class="hidden"> <!-- Оборачиваем всё в этот контейнер -->
+    
+    <!-- Баннер админа -->
+    <div id="admin-banner" style="display: none;">
+        <h3>Режим администратора</h3>
+        <p>Вам доступны инструменты управления заказами и статистикой.</p>
+        <a href="admin.html" class="order-btn" style="display: inline-block; margin-top: 10px; text-decoration: none;">Перейти в панель управления</a>
+    </div>
+
+    <!-- Инфо о пользователе -->
+    <div class="stat-card">
+        <p><strong>Имя:</strong> <span id="u-name"></span></p>
+        <p><strong>Email:</strong> <span id="u-email"></span></p>
+        <button onclick="logoutUser()" class="delete-btn">Выйти из системы</button>
+    </div>
+
+    <h2 style="margin-top:30px;">Мои заказы</h2>
+    <div id="orders-history">Загрузка истории...</div>
+
+</div>
+</main>
+
+<script>
+    const authSection = document.getElementById('auth-section');
+    const profileSection = document.getElementById('profile-section');
+
+    // Проверка при загрузке
+   function checkAuth() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const authSection = document.getElementById('auth-section');
+    const profileSection = document.getElementById('profile-section');
+
+    if (user) {
+        // Если авторизован
+        authSection.classList.add('hidden');
+        profileSection.classList.remove('hidden');
+        
+        document.getElementById('u-name').innerText = user.full_name;
+        document.getElementById('u-email').innerText = user.email;
+        
+        loadOrders(user.id);
+        checkAdminStatus(user); // Передаем пользователя в проверку админа
+    } else {
+        // Если НЕ авторизован
+        authSection.classList.remove('hidden');
+        profileSection.classList.add('hidden');
+    }
+}
+
+// Немного подправим проверку статуса админа
+function checkAdminStatus(user) {
+    if (user && (user.role === 'admin' || user.email === 'sergejnikitin8112@gmail.com')) {
+        document.getElementById('admin-banner').style.display = 'block';
+    }
+}
+
+    function toggleForms() {
+        document.getElementById('login-form-container').classList.toggle('hidden');
+        document.getElementById('register-form-container').classList.toggle('hidden');
+    }
+
+    // ЛОГИКА ВХОДА
+    document.getElementById('login-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('l-email').value;
+        const password = document.getElementById('l-pass').value;
+
+        const res = await fetch('http://localhost:5000/api/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            location.reload();
+        } else {
+            alert(data.message);
+        }
+    };
+
+    // ЛОГИКА РЕГИСТРАЦИИ
+   document.getElementById('register-form').onsubmit = async (e) => {
+    e.preventDefault();
+    
+    // Собираем данные, ВКЛЮЧАЯ код подтверждения
+    const userData = {
+        full_name: document.getElementById('r-name').value,
+        email: document.getElementById('r-email').value,
+        phone: document.getElementById('r-phone').value,
+        address: document.getElementById('r-address').value,
+        password: document.getElementById('r-pass').value,
+        code: document.getElementById('r-code').value // ВОТ ОН, наш код!
+    };
+
+    try {
+        const res = await fetch('http://localhost:5000/api/auth/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(userData)
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert("Регистрация успешна!");
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            location.reload();
+        } else {
+            // Если код неверный или почта занята — сервер вернет ошибку здесь
+            alert(data.message);
+        }
+    } catch (error) {
+        alert("Ошибка при регистрации на сервере");
+    }
+};
+
+    function logoutUser() {
+        localStorage.removeItem('currentUser');
+        location.reload();
+    }
+
+async function loadOrders(userId) {
+    try {
+        const res = await fetch(`http://localhost:5000/api/user/orders/${userId}?t=` + Date.now());
+        const orders = await res.json();
+        const container = document.getElementById('orders-history');
+        
+        if (orders.length === 0) {
+            container.innerHTML = '<p>У вас пока нет заказов.</p>';
+            return;
+        }
+
+        container.innerHTML = orders.map(o => {
+            // Определяем цвет индикатора в зависимости от статуса
+            let statusColor = '#7f8c8d'; // Серый для новых
+            if (o.status === 'Готовится') statusColor = '#e67e22'; // Оранжевый
+            if (o.status === 'Выполнен') statusColor = '#27ae60';  // Зеленый
+
+            return `
+                <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong style="font-size: 1.1rem;">Заказ #${o.id}</strong>
+                        <span style="background: ${statusColor}; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">
+                            ${o.status || 'Новый'}
+                        </span>
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 8px;">
+                        Дата: ${new Date(o.created_at).toLocaleString()}
+                    </div>
+                    <div style="border-top: 1px dashed #eee; padding-top: 8px; font-weight: 600;">
+                        Сумма: ${o.total_price} ₽
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error("Ошибка загрузки заказов:", error);
+        document.getElementById('orders-history').innerHTML = '<p style="color:red">Не удалось загрузить историю заказов.</p>';
+    }
+}
+
+
+async function sendVerifyCode() {
+    const email = document.getElementById('r-email').value;
+    const btn = document.getElementById('send-code-btn');
+    
+    if (!email) return alert("Сначала введите email!");
+
+    btn.disabled = true;
+    btn.innerText = "Отправка...";
+
+    try {
+        const res = await fetch('http://localhost:5000/api/auth/send-code', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert("Код отправлен на почту!");
+            btn.innerText = "Код ушел";
+        } else {
+            alert("Ошибка: " + data.message);
+            btn.disabled = false;
+            btn.innerText = "Получить код";
+        }
+    } catch (e) {
+        alert("Ошибка сервера при отправке кода");
+        btn.disabled = false;
+        btn.innerText = "Получить код";
+    }
+}
+
+    checkAuth();
+
+    
+    checkAdminStatus();
+</script>
+</body>
+</html>
