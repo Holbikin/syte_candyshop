@@ -22,9 +22,7 @@
 </header>
 
 <main class="container">
-    <!-- СЕКЦИЯ АВТОРИЗАЦИИ -->
     <div id="auth-section" class="auth-container">
-        <!-- Форма Входа -->
         <div id="login-form-container">
             <h2>Вход</h2>
             <form id="login-form">
@@ -35,7 +33,6 @@
             <span class="toggle-link" onclick="toggleForms()">Нет аккаунта? Регистрация</span>
         </div>
 
-        <!-- Форма Регистрации -->
        <div id="register-form-container" class="hidden">
     <h2>Регистрация</h2>
     <form id="register-form">
@@ -60,17 +57,14 @@
 </div>
     </div>
 
-    <!-- СЕКЦИЯ ЛИЧНОГО КАБИНЕТА -->
-  <div id="profile-section" class="hidden"> <!-- Оборачиваем всё в этот контейнер -->
+  <div id="profile-section" class="hidden">
     
-    <!-- Баннер админа -->
     <div id="admin-banner" style="display: none;">
         <h3>Режим администратора</h3>
         <p>Вам доступны инструменты управления заказами и статистикой.</p>
         <a href="admin.html" class="order-btn" style="display: inline-block; margin-top: 10px; text-decoration: none;">Перейти в панель управления</a>
     </div>
 
-    <!-- Инфо о пользователе -->
     <div class="stat-card">
         <p><strong>Имя:</strong> <span id="u-name"></span></p>
         <p><strong>Email:</strong> <span id="u-email"></span></p>
@@ -87,14 +81,12 @@
     const authSection = document.getElementById('auth-section');
     const profileSection = document.getElementById('profile-section');
 
-    // Проверка при загрузке
    function checkAuth() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
     const authSection = document.getElementById('auth-section');
     const profileSection = document.getElementById('profile-section');
 
     if (user) {
-        // Если авторизован
         authSection.classList.add('hidden');
         profileSection.classList.remove('hidden');
         
@@ -102,15 +94,14 @@
         document.getElementById('u-email').innerText = user.email;
         
         loadOrders(user.id);
-        checkAdminStatus(user); // Передаем пользователя в проверку админа
+        checkAdminStatus(user);
     } else {
-        // Если НЕ авторизован
         authSection.classList.remove('hidden');
         profileSection.classList.add('hidden');
     }
 }
 
-// Немного подправим проверку статуса админа
+// Проверка статуса админа
 function checkAdminStatus(user) {
     if (user && (user.role === 'admin' || user.email === 'sergejnikitin8112@gmail.com')) {
         document.getElementById('admin-banner').style.display = 'block';
@@ -122,7 +113,7 @@ function checkAdminStatus(user) {
         document.getElementById('register-form-container').classList.toggle('hidden');
     }
 
-    // ЛОГИКА ВХОДА
+    // логика входа
     document.getElementById('login-form').onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('l-email').value;
@@ -142,18 +133,17 @@ function checkAdminStatus(user) {
         }
     };
 
-    // ЛОГИКА РЕГИСТРАЦИИ
+    // логика регистрации
    document.getElementById('register-form').onsubmit = async (e) => {
     e.preventDefault();
     
-    // Собираем данные, ВКЛЮЧАЯ код подтверждения
     const userData = {
         full_name: document.getElementById('r-name').value,
         email: document.getElementById('r-email').value,
         phone: document.getElementById('r-phone').value,
         address: document.getElementById('r-address').value,
         password: document.getElementById('r-pass').value,
-        code: document.getElementById('r-code').value // ВОТ ОН, наш код!
+        code: document.getElementById('r-code').value
     };
 
     try {
@@ -169,7 +159,6 @@ function checkAdminStatus(user) {
             localStorage.setItem('currentUser', JSON.stringify(data.user));
             location.reload();
         } else {
-            // Если код неверный или почта занята — сервер вернет ошибку здесь
             alert(data.message);
         }
     } catch (error) {
@@ -194,10 +183,9 @@ async function loadOrders(userId) {
         }
 
         container.innerHTML = orders.map(o => {
-            // Определяем цвет индикатора в зависимости от статуса
-            let statusColor = '#7f8c8d'; // Серый для новых
-            if (o.status === 'Готовится') statusColor = '#e67e22'; // Оранжевый
-            if (o.status === 'Выполнен') statusColor = '#27ae60';  // Зеленый
+            let statusColor = '#7f8c8d';
+            if (o.status === 'Готовится') statusColor = '#e67e22';
+            if (o.status === 'Выполнен') statusColor = '#27ae60';
 
             return `
                 <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">

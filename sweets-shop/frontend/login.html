@@ -41,7 +41,6 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Сохраняем "флаг" входа в память браузера
                     localStorage.setItem('isAdmin', 'true');
                     window.location.href = 'admin.html';
                 } else {

@@ -144,7 +144,6 @@ app.post('/api/admin/login', (req, res) => {
 // Маршрут регистрации
 app.post('/api/auth/register', (req, res) => {
     const { full_name, email, phone, address, password, code } = req.body;
-    // Проверка кода
     if (!verifyCodes[email] || verifyCodes[email].toString() !== code.toString()) {
         return res.status(400).json({ success: false, message: "Неверный или просроченный код" });
     }

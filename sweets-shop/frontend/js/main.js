@@ -1,12 +1,10 @@
-// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
-let allProducts = []; // Храним загруженные товары, чтобы не дергать сервер каждый раз
+let allProducts = [];
 
-// --- 1. ЗАГРУЗКА И ОТРИСОВКА ТОВАРОВ ---
 async function fetchProducts() {
     try {
         const response = await fetch('http://localhost:5000/api/products');
-        allProducts = await response.json(); // Сохраняем в глобальную переменную
+        allProducts = await response.json();
         renderProducts(allProducts);
     } catch (error) {
         console.error('Ошибка загрузки товаров:', error);
@@ -17,7 +15,7 @@ async function fetchProducts() {
 
 function renderProducts(products) {
     const grid = document.getElementById('product-grid');
-    if (!grid) return; // Защита: если мы не на главной странице, выходим
+    if (!grid) return;
 
     if (products.length === 0) {
         grid.innerHTML = `<p>В магазине пока нет товаров.</p>`;
@@ -25,7 +23,6 @@ function renderProducts(products) {
     }
 
     grid.innerHTML = products.map(product => {
-        // Картинка или заглушка
         const imageHtml = product.image_url 
             ? `<img src="${product.image_url}" alt="${product.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px 8px 0 0;">`
             : `<div style="display:flex; height:100%; align-items:center; justify-content:center;"><i class="fas fa-cookie-bite fa-4x" style="color: #dcdde1;"></i></div>`;
@@ -65,8 +62,6 @@ function renderProducts(products) {
     }).join('');
 }
 
-// --- 2. УПРАВЛЕНИЕ КОРЗИНОЙ ---
-
 function updateCartCounter() {
     const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     const counterElement = document.getElementById('cart-count');
@@ -76,7 +71,6 @@ function updateCartCounter() {
     localStorage.setItem('cart', JSON.stringify(cart));
 }
 
-// ИСПРАВЛЕНО: принимает ровно 3 параметра напрямую из кнопки
 window.addToCart = (id, name, price) => {
     const existingProduct = cart.find(item => item.id === id);
 
@@ -87,33 +81,28 @@ window.addToCart = (id, name, price) => {
     }
 
     updateCartCounter();
-    renderProducts(allProducts); // Мгновенно обновляем кнопку на +/-
+    renderProducts(allProducts);
 };
 
-// ИСПРАВЛЕНО: универсальная функция обновления количества
 window.changeQty = (id, delta) => {
     const index = cart.findIndex(item => item.id === id);
     if (index !== -1) {
         cart[index].quantity += delta;
         if (cart[index].quantity <= 0) {
-            cart.splice(index, 1); // Удаляем, если 0
+            cart.splice(index, 1);
         }
     }
     
     updateCartCounter(); 
 
-    // Обновляем витрину, если мы на главной
     if (document.getElementById('product-grid')) renderProducts(allProducts);
     
-    // Обновляем модалку, если она открыта
     const modal = document.getElementById('cart-modal');
     if (modal && modal.style.display === 'block') renderCart(); 
 
-    // Обновляем список оформления заказа, если мы на странице checkout
     if (document.getElementById('checkout-items-list')) renderCheckout();
 };
 
-// --- 3. МОДАЛЬНОЕ ОКНО И ОФОРМЛЕНИЕ ЗАКАЗА ---
 
 window.toggleModal = () => {
     const modal = document.getElementById('cart-modal');
@@ -190,7 +179,7 @@ function renderCheckout() {
     if (total) total.innerText = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 }
 
-// Отправка заказа (на странице checkout.html)
+// Отправка заказа
 window.confirmOrder = async () => {
     if (cart.length === 0) return;
 
@@ -212,7 +201,7 @@ window.confirmOrder = async () => {
         });
 
         if (response.ok) {
-            alert("✨ Заказ успешно оформлен!");
+            alert("Заказ успешно оформлен!");
             cart = [];
             localStorage.removeItem('cart');
             window.location.href = 'index.html';
@@ -223,7 +212,6 @@ window.confirmOrder = async () => {
     }
 };
 
-// --- 4. НАВИГАЦИЯ И ИНИЦИАЛИЗАЦИЯ ---
 
 function updateNav() {
     const navLinks = document.querySelector('.nav-links');
@@ -247,13 +235,11 @@ function updateNav() {
     }
 }
 
-// Закрытие модального окна кликом вне его
 window.onclick = function(event) {
     const modal = document.getElementById('cart-modal');
     if (event.target == modal) modal.style.display = "none";
 }
 
-// Инициализация при старте страницы
 document.addEventListener('DOMContentLoaded', () => {
     updateCartCounter();
     updateNav();
